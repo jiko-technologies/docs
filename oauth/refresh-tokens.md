@@ -86,4 +86,4 @@ In OAuth 2.0 and other authentication systems, the refresh token flow allows cli
 2. **Continued API requests**:
    - The client application uses the new `access_token` for API requests.
 
-Next: See [Login flow](login-flow.md)
+Next: [Login flow](login-flow.md)

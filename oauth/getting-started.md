@@ -11,4 +11,4 @@ You will receive
 1. client_id - a public identifier for your oauth client to send with your authentication requests
 2. client_secret - a secret key that is used when exchanging an authorization code for an access token
 
-Next: See [Authorization code flow](authorization-code-flow.md)
+Next: [Authorization code flow](authorization-code-flow.md)

@@ -71,8 +71,4 @@ client_secret=your-client-secret
 
 For detailed information and technical breakdowns of these topics see [oauth.com](https://www.oauth.com/oauth2-servers/access-tokens/authorization-code-request/)
 
-Next: See [PKCE](pkce.md)
-
-```
-
-```
+Next: [PKCE](pkce.md)

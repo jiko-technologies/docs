@@ -39,4 +39,4 @@ CODE_CHALLENGE=$(echo -n "$code_challenge" | sed 's/+/%2B/g; s/\//%2F/g; s/=/%3D
 echo $CODE_CHALLENGE
 ```
 
-Next: See [Refresh tokens](refresh-tokens.md)
+Next: [Refresh tokens](refresh-tokens.md)
