@@ -6,4 +6,9 @@ Contact Jiko support to receive credentials for an oauth client. You will need t
 2. Redirect URI - where to redirect after authentication flow is finished
 3. Name of OAuth client - Will be displayed on the consent screen
 
+You will receive
+
+1. client_id - a public identifier for your oauth client to send with your authentication requests
+2. client_secret - a secret key that is used when exchanging an authorization code for an access token
+
 Next: See [Authorization code flow](authorization-code-flow.md)
