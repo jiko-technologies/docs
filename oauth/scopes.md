@@ -3,7 +3,7 @@
 The following are the scopes available for authorization, along with their descriptions:
 
 - **`openid`** - OpenID scope
-- **`PROFILE`** - Read information for the current logged-in user
+- **`profile`** - Read information for the current logged-in user
 - **`email`** - Read email for the current logged-in user
 - **`phone`** - Read phone number for the current logged-in user
 - **`pockets.read`** - Read pocket information for a given customer
