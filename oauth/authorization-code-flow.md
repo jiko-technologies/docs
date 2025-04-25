@@ -12,10 +12,11 @@ The Authorization Code Flow is a common method used to securely obtain an access
 
    - The application redirects the user to an authorization server. This redirect includes:
 
-     - Client ID
+     - client_id
      - Requested scopes (what access the application needs)
-     - Redirect URI (where the authorization server should send the user after authorization)
-     - State (An optional parameter to maintain state between the request and callback)
+     - redirect_uri (where the authorization server should send the user after authorization)
+     - state
+     - code_challenge (see [PKCE](./pkce.md))
 
 ```http
 POST /api/oauth2/authorize
@@ -37,16 +38,17 @@ state=some-random-state
    - If the user approves, the authorization server redirects the user back to the application’s redirect URI with an authorization code.
 
 ```http
-HTTP/1.1 302 Found
+HTTP/1.1 303 Other
 Location: https://your-app.com/callback?code=authorization-code&state=some-random-state
 ```
 
 5. **Application Requests Token**
 
    - The application extracts the authorization code from the URL and sends a request to the authorization server’s token endpoint. This request includes:
-     - Authorization code
-     - Client ID
-     - Client secret (a secret key known only to the application and the authorization server)
+     - authorization_code
+     - client_id
+     - client_secret (a secret key known only to the application and the authorization server) or using [private_key_jwt](./private-key-jwt.md)
+     - code_verifier (see [PKCE](./pkce.md))
 
 ```http
 POST /api/oauth2/token
@@ -71,4 +73,4 @@ client_secret=your-client-secret
 
 For detailed information and technical breakdowns of these topics see [oauth.com](https://www.oauth.com/oauth2-servers/access-tokens/authorization-code-request/)
 
-Next: [PKCE](pkce.md)
+Next: [private_key_jwt](./private-key-jwt.md)
