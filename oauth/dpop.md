@@ -105,7 +105,7 @@ When calling the resource server, the client:
 
 ```http
 GET /resource HTTP/1.1
-Host: api.buesiness.jiko.io
+Host: api.business.jiko.io
 Authorization: DPoP eyJhbGciOiJSUzI1NiIsInR5cCI...
 DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJqdGkiOiJ...
 ```
