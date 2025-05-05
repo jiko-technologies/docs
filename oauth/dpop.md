@@ -40,18 +40,18 @@ The header contains:
 
 ### **Payload**
 
-The should contain the following claims:
+The should contain the following claims, these claims will be matched against the request being made by the resource server:
 
 - `jti`: A unique identifier.
 - `htm`: The HTTP method (e.g., GET, POST).
 - `htu`: The HTTP URI of the resource being accessed.
-- `iat`: Issued at timestamp.
+- `iat`: Issued at timestamp. (10 second leeway)
 
 ```json
 {
   "jti": "unique-id",
   "htm": "GET",
-  "htu": "https://api.business.jiko.io/api/v2/pockets",
+  "htu": "https://api.business.jiko.io/api/v2/pockets/",
   "iat": 1711910400
 }
 ```
