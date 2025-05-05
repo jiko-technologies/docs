@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠️ How It Works
+## How It Works
 
 1. The client generates a **DPoP proof JWT** signed with its private key.
 2. The client sends the DPoP proof in the `DPoP` header when:
@@ -20,45 +20,47 @@
 
 ---
 
-## 🔧 DPoP Proof JWT Structure
+## DPoP Proof JWT Structure
 
 ### **Header**
 
 The header contains:
 
-- The signing algorithm (e.g., `RS256`, `ES256`, `EdDSA`).
+- The signing algorithm (e.g., `PS256`, `ES256`, `EdDSA`).
 - The token type.
 
 ```json
 {
   "typ": "dpop+jwt",
-  "alg": "ES256"
+  "alg": "ES256",
+  "key": "" // Public key for the private key used to sign the DPoP proof
+  // in JWK format
 }
 ```
 
 ### **Payload**
 
-The DPoP proof JWT contains the following claims:
+The should contain the following claims, these claims will be matched against the request being made by the resource server:
 
 - `jti`: A unique identifier.
 - `htm`: The HTTP method (e.g., GET, POST).
 - `htu`: The HTTP URI of the resource being accessed.
-- `iat`: Issued at timestamp.
+- `iat`: Issued at timestamp. (10 second leeway)
 
 ```json
 {
   "jti": "unique-id",
   "htm": "GET",
-  "htu": "https://api.business.jiko.io/api/v2/pockets",
+  "htu": "https://api.business.jiko.io/api/v2/pockets/",
   "iat": 1711910400
 }
 ```
 
 ### **Signature**
 
-The JWT is signed with the client's private key using an asymmetric algorithm (e.g., `ES256`).
+The JWT is signed using a private key using an asymmetric algorithm.
 
-### 🔑 Token Request with DPoP Proof
+### Token Request with DPoP Proof
 
 When requesting an access token, the client sends:
 
@@ -92,7 +94,7 @@ The server issues a **DPoP-bound access token**:
 
 - The `token_type` is `DPoP` instead of `Bearer`.
 
-### 🔐 Accessing Protected Resources with DPoP
+### Accessing Protected Resources with DPoP
 
 When calling the resource server, the client:
 
@@ -103,7 +105,7 @@ When calling the resource server, the client:
 
 ```http
 GET /resource HTTP/1.1
-Host: api.buesiness.jiko.io
+Host: api.business.jiko.io
 Authorization: DPoP eyJhbGciOiJSUzI1NiIsInR5cCI...
 DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJqdGkiOiJ...
 ```
