@@ -12,7 +12,7 @@
 
 ---
 
-## 🛠️ JWT Structure
+## JWT Structure
 
 ### **Header**
 
@@ -36,7 +36,7 @@ The JWT payload contains the following claims:
 - `sub`: The client ID (same as `iss`).
 - `aud`: The token endpoint of the authorization server.
 - `iat`: Issued at timestamp.
-- `exp`: Expiration timestamp.
+- `exp`: Expiration timestamp (max 5 min lifetime recommended).
 - `jti`: Unique token identifier to prevent reuse.
 
 ```json
@@ -52,20 +52,21 @@ The JWT payload contains the following claims:
 
 ### **Signature**
 
-The client signs the JWT with its private key using an asymmetric algorithm (e.g., `RS256`).
+The client signs the JWT with its private key using an asymmetric algorithm.
 
-🔑 Client Authentication Request
+Client Authentication Request
+
 When requesting an access token, the client sends:
 
-- `client_assertion_type`: Specifies the JWT format (urn:ietf:params:oauth:client-assertion-type:jwt-bearer).
+- `client_assertion_type`: Specifies the JWT format (`urn:ietf:params:oauth:client-assertion-type:jwt-bearer`).
 - `client_assertion`: The signed JWT.
-- `grant_type`: Authentication flow (authorization_code).
+- `grant_type`: Authentication flow (`authorization_code`).
 
 #### Request Example
 
 ```http
 POST /token HTTP/1.1
-Host: auth-server.com
+Host: auth.jiko.io/api/oauth2/token
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=authorization_code
