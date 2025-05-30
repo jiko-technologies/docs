@@ -22,7 +22,7 @@ In OAuth 2.0 and other authentication systems, the refresh token flow allows cli
 
    - The authorization server validates the refresh token. If valid, it issues a new access token and a new refresh token.
 
-   * The refresh token expires in `1 day` if this token expires a new login flow is needed.
+   * The refresh token expires in `90 days` if this token expires a new login flow is needed.
 
 5. **Client Application Updates**:
    - The client application receives the new access token and uses it for subsequent API requests. It also stores the new refresh token.
