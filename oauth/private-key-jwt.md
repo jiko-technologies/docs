@@ -18,12 +18,12 @@
 
 The JWT header specifies:
 
-- The signing algorithm (e.g., `RS256`).
+- The signing algorithm (e.g., `PS256`).
 - The token type.
 
 ```json
 {
-  "alg": "RS256",
+  "alg": "PS256",
   "typ": "jwt"
 }
 ```
