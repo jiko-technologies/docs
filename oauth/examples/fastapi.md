@@ -14,10 +14,11 @@ pip install "fastapi[standard]" httpx python-dotenv authlib uvicorn
 
 ```bash
 JIKO_CLIENT_ID=your-jiko-client-id
-JIKO_CLIENT_SECRET=private-key-used-for-client-authentication
+JIKO_CLIENT_PRIVATE_KEY=private-key-used-for-client-authentication
 JIKO_METADATA_URL=https://auth.jiko.io/.well-known/openid-configuration
 JIKO_TOKEN_ENDPOINT=https://auth.jiko.io/api/oauth2/token
 REDIRECT_URI=https://your-callback.com/auth/callback
+SECRET_KEY=your-session-secret-key
 ```
 
 ## 3. FastAPI Application Code
@@ -25,14 +26,19 @@ REDIRECT_URI=https://your-callback.com/auth/callback
 ```python
 import os
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from authlib.oauth2.rfc7523 import PrivateKeyJWT
+from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = FastAPI()
+
+# Add session middleware (required for OAuth state and user session)
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
 
 # OAuth2 configuration
 oauth = OAuth()
@@ -65,7 +71,7 @@ async def login(request: Request):
 @app.get("/auth/callback")
 async def auth_callback(request: Request):
     token = await oauth.jiko.authorize_access_token(request)
-    user_info = await oauth.jiko.parse_id_token(request, token)
+    user_info = token.get("userinfo")
 
     user = User(
         sub=user_info.get("sub"),
@@ -73,8 +79,11 @@ async def auth_callback(request: Request):
         email=user_info.get("email"),
     )
 
-    # Redirect or respond with user info
-    return user
+    # Store user in session
+    request.session["user"] = user.model_dump()
+
+    # Redirect to user page or return user info
+    return RedirectResponse(url="/user")
 
 
 @app.get("/user")
@@ -82,8 +91,6 @@ async def read_user(request: Request):
     if "user" not in request.session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return request.session["user"]
-
-
 ```
 
 ## 4. Running the Application
@@ -94,7 +101,7 @@ Explanation:
 
 - **Dependencies**: `authlib` is used for OAuth2 authentication. `httpx` is used for making HTTP requests if needed. `python-dotenv` is used to load environment variables from a `.env `file.
 
-- **OAuth Configuration**: Configure OAuth2 with Jiko by registering it with `authlib`. The `client_kwargs` include the scopes for OAuth2. Client secret is the private key that pairs with the public key that was created when the oauth client was created.
+- **OAuth Configuration**: Configure OAuth2 with Jiko by registering it with `authlib`. The `client_kwargs` include the scopes for OAuth2. The private key is used to sign the client assertion JWT for authentication (see [Private Key JWT](../private-key-jwt.md)).
 
 - **Login Endpoint**: Redirects users to the Jiko OAuth2 authorization page.
 
@@ -102,4 +109,4 @@ Explanation:
 
 - **User Endpoint**: Returns user information if authenticated; otherwise, returns an HTTP 401 Unauthorized error.
 
-Ensure you replace `your-jiko-client-id` and `your-jiko-client-secret `with the actual credentials you get from Jiko. The `REDIRECT_URI` should match the URI you provided during oauth client registration.
+Ensure you replace `your-jiko-client-id` and `your-jiko-client-private-key` with the actual credentials you get from Jiko. The `REDIRECT_URI` should match the URI you provided during OAuth client registration.

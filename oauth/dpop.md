@@ -1,51 +1,49 @@
-# DPoP (Demonstrating Proof of Possession) Flow
+# DPoP (Demonstrating Proof of Possession)
 
-## Overview
+DPoP binds access tokens to your client so stolen tokens are useless to attackers.
 
-**DPoP (Demonstrating Proof of Possession)** is an OAuth 2.0 extension that protects access tokens against misuse by binding them to a specific **client's key**. Unlike traditional Bearer tokens, DPoP ensures that only the client with the corresponding private key can use the token.
+---
+
+## Why DPoP?
+
+Normal OAuth tokens are "bearer" tokens, whoever has the token can use it. If your token leaks through logs, network interception, or a compromised server, an attacker can use it until it expires.
+
+DPoP ties each token to a cryptographic key pair. Your app proves it holds the private key on every request. Steal the token? Doesn't matter - you can't use it without the key.
+
+Think of it like chip + PIN vs. a credit card number. Anyone can use a stolen card number. With chip + PIN, you need the physical card.
+
+Use DPoP for financial transactions, sensitive data access, or any scenario where token theft would be a big problem.
 
 ---
 
 ## How It Works
 
-1. The client generates a **DPoP proof JWT** signed with its private key.
-2. The client sends the DPoP proof in the `DPoP` header when:
-   - Requesting an access token.
-   - Using the access token to access a protected resource.
-3. The authorization server issues a **DPoP-bound access token**.
-4. The resource server verifies that:
-   - The DPoP header is present.
-   - The signature is valid.
-   - The token was bound to the correct key.
+1. Generate a key pair for your client
+2. On token requests, include a signed DPoP proof JWT in the `DPoP` header
+3. The server binds your token to your public key
+4. On API requests, include both the token and a fresh DPoP proof
+5. The resource server verifies the proof matches the token's bound key
 
 ---
 
-## DPoP Proof JWT Structure
+## DPoP Proof Structure
 
-### **Header**
-
-The header contains:
-
-- The signing algorithm (e.g., `PS256`, `ES256`, `EdDSA`).
-- The token type.
+The proof is a JWT with your public key in the header:
 
 ```json
 {
   "typ": "dpop+jwt",
   "alg": "ES256",
-  "key": "" // Public key for the private key used to sign the DPoP proof
-  // in JWK format
+  "jwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "...",
+    "y": "..."
+  }
 }
 ```
 
-### **Payload**
-
-The should contain the following claims, these claims will be matched against the request being made by the resource server:
-
-- `jti`: A unique identifier.
-- `htm`: The HTTP method (e.g., GET, POST).
-- `htu`: The HTTP URI of the resource being accessed.
-- `iat`: Issued at timestamp. (10 second leeway)
+The payload ties the proof to a specific request:
 
 ```json
 {
@@ -56,62 +54,71 @@ The should contain the following claims, these claims will be matched against th
 }
 ```
 
-### **Signature**
+- `jti` - unique ID (prevents replay)
+- `htm` - HTTP method
+- `htu` - URL you're calling
+- `iat` - timestamp (10 second leeway)
 
-The JWT is signed using a private key using an asymmetric algorithm.
+---
 
-### Token Request with DPoP Proof
+## Token Request
 
-When requesting an access token, the client sends:
-
-- `DPoP` header: The signed DPoP proof JWT.
-- Standard OAuth parameters (`grant_type`, `client_id`, etc.).
-
-#### Request example
+Include the DPoP proof when getting tokens:
 
 ```http
 POST /api/oauth2/token HTTP/1.1
 Host: auth.jiko.io
 Content-Type: application/x-www-form-urlencoded
-DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJqdGkiOiJ...
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2In0...
 
-grant_type=authorization_code
-&client_id=your-client-id
-&client_secret=your-client-secret
+grant_type=authorization_code&
+client_id=your-client-id&
+client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&
+client_assertion=eyJhbGciOiJQUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-#### Response Example
-
-The server issues a **DPoP-bound access token**:
+Response:
 
 ```json
 {
   "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
   "token_type": "DPoP",
-  "expires_in": 3600
+  "expires_in": 900
 }
 ```
 
-- The `token_type` is `DPoP` instead of `Bearer`.
+Note `token_type` is `DPoP`, not `Bearer`.
 
-### Accessing Protected Resources with DPoP
+---
 
-When calling the resource server, the client:
+## API Requests
 
-- Includes the `Authorization` header with the DPoP-bound token.
-- Sends a new **DPoP proof JWT** in the `DPoP` header.
-
-#### Request example
+Every request needs the token and a fresh proof:
 
 ```http
-GET /resource HTTP/1.1
+GET /api/v2/pockets/ HTTP/1.1
 Host: api.business.jiko.io
 Authorization: DPoP eyJhbGciOiJSUzI1NiIsInR5cCI...
-DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJqdGkiOiJ...
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2In0...
 ```
 
-### 📚 References
+Generate a new proof for each request with a unique `jti`, correct `htm`/`htu`, and fresh `iat`.
 
-[OAuth 2.0 Demonstrating Proof of Possession (DPoP)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop)
+---
 
-Next: [Refresh tokens](refresh-tokens.md)
+## What DPoP Protects Against
+
+| Threat               | Bearer Token        | DPoP Token              |
+| -------------------- | ------------------- | ----------------------- |
+| Token in logs        | Attacker can use it | Useless without key     |
+| Token intercepted    | Attacker can use it | Useless without key     |
+| Token leaked via XSS | Attacker can use it | Useless without key     |
+| Replay attacks       | Works until expiry  | Blocked by unique `jti` |
+
+---
+
+## References
+
+- [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) - DPoP specification
+- [OAuth 2.0 Security BCP](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics) - recommends sender-constrained tokens
+

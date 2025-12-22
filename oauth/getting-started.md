@@ -1,14 +1,32 @@
-# Getting started
+# OAuth
 
-Contact Jiko support to receive credentials for an oauth client. You will need to provide the following details
+Jiko uses OAuth 2.0 for API authentication. There are two flows depending on your use case:
 
-1. Required [scopes](scopes.md)
-2. Redirect URI - where to redirect after authentication flow is finished
-3. Name of OAuth client - Will be displayed on the [consent screen](login-flow.md)
+| Flow | Use Case | Client Setup |
+|------|----------|--------------|
+| [Authorization Code](authorization-code-flow.md) | User-facing apps that need to act on behalf of users | Self-service via Settings page |
+| [Client Credentials](client-credentials.md) | Machine-to-machine, backend services | Contact Jiko support |
 
-You will receive
+## Authentication
 
-1. client_id - a public identifier for your oauth client to send with your authentication requests
-2. client_secret - a secret key that is used when exchanging an authorization code for an access token
+All clients authenticate using [Private Key JWT](private-key-jwt.md) - you sign a JWT with your private key, and Jiko verifies it with your public key. No shared secrets.
 
-Next: [Authorization code flow](authorization-code-flow.md)
+You can register your public key in the Settings page of the Jiko authentication portal.
+
+## Security Extensions
+
+| Extension | Purpose |
+|-----------|---------|
+| [PKCE](pkce.md) | Protects authorization codes from interception (required) |
+| [DPoP](dpop.md) | Binds tokens to your client so stolen tokens are useless (optional) |
+
+## Token Lifetimes
+
+- Access tokens: 15 minutes
+- Refresh tokens: 90 days (Authorization Code Flow only)
+
+See [Refresh Tokens](refresh-tokens.md) for how to get new access tokens without re-authenticating.
+
+## Scopes
+
+See [Scopes](scopes.md) for available permissions.

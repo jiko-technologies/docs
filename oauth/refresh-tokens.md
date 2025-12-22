@@ -1,89 +1,53 @@
-# Refresh Token Flow
+# Refresh Tokens
 
-## Overview
+Refresh tokens let you get new access tokens without making the user log in again.
 
-In OAuth 2.0 and other authentication systems, the refresh token flow allows clients to obtain a new access token using a refresh token when the original access token has expired. This helps maintain a seamless user experience without requiring the user to re-authenticate frequently.
+---
 
-## Steps in Refresh Token Flow
+## How It Works
 
-1. **Initial Authentication Request**:
+When you complete the [Authorization Code Flow](authorization-code-flow.md), you get both an access token and a refresh token. Access tokens expire after 15 minutes. When that happens, use the refresh token to get a new pair.
 
-   - The user logs in and the client application obtains an access token and a refresh token from the authorization server see [authorization code flow](authorization-code-flow.md).
+Refresh tokens expire after 90 days. Once expired, the user needs to log in again.
 
-2. **Access Token Expiry**:
+---
 
-   - The access token has a limited lifespan of `15 minutes` and will eventually expire.
+## Token Request
 
-3. **Refresh Token Request**:
+```http
+POST /api/oauth2/token HTTP/1.1
+Host: auth.jiko.io
+Content-Type: application/x-www-form-urlencoded
 
-   - When the access token expires, the client application sends a request to the authorization server using the refresh token to obtain a new access token.
+grant_type=refresh_token&
+refresh_token=dGhpcy1yZWZyZXNoLXRva2VuLi4u...&
+client_id=your-client-id&
+client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&
+client_assertion=eyJhbGciOiJQUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
-4. **Authorization Server Response**:
+Response:
 
-   - The authorization server validates the refresh token. If valid, it issues a new access token and a new refresh token.
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "bmV3LXJlZnJlc2gtdG9rZW4u...",
+  "token_type": "Bearer",
+  "expires_in": 900
+}
+```
 
-   * The refresh token expires in `90 days` if this token expires a new login flow is needed.
+---
 
-5. **Client Application Updates**:
-   - The client application receives the new access token and uses it for subsequent API requests. It also stores the new refresh token.
+## Tips
 
-## Example
+- Store refresh tokens securely - they're long-lived and powerful
+- Always save the new refresh token from each response (it rotates)
+- Refresh proactively before expiry rather than waiting for a 401
+- Client authentication (Private Key JWT) is required for refresh requests
 
-### Initial Authentication
+---
 
-1. **User logs in**:
+## References
 
-   - The user provides credentials to the authorization server.
-   - The server responds with:
-     ```json
-     {
-       "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-       "refresh_token": "dGhpcy1yZWZyZXNoLWpvaG4tZG9l...",
-       "expires_in": 900
-     }
-     ```
-
-2. **Client stores tokens**:
-   - The client application stores the `access_token` and `refresh_token`.
-
-### Access Token Expiry
-
-1. **Access token expires**:
-   - The client application attempts to make an API request with the expired access token.
-   - The server responds with an error, such as `401 Unauthorized`.
-
-### Refresh Token Request
-
-1. **Client requests a new access token**:
-
-   - The client application sends a request to the authorization server using the refresh token:
-
-     ```http
-     POST /api/oauth2/token
-     Content-Type: application/x-www-form-urlencoded
-
-     grant_type=refresh_token&
-     refresh_token=dGhpcy1yZWZyZXNoLWpvaG4tZG9l...
-     ```
-
-2. **Authorization server responds**:
-   - The server validates the refresh token and responds with:
-     ```json
-     {
-       "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-       "refresh_token": "dGhpcy1yZWZyZXNoLWpvaG4tZG9l...",
-       "expires_in": 900
-     }
-     ```
-
-### Client Application Updates
-
-1. **Client updates tokens**:
-
-   - The client application receives the new `access_token` and stores it.
-   - It also updates the `refresh_token`
-
-2. **Continued API requests**:
-   - The client application uses the new `access_token` for API requests.
-
-Next: [Login flow](login-flow.md)
+- [RFC 6749 - Refreshing an Access Token](https://datatracker.ietf.org/doc/html/rfc6749#section-6)
