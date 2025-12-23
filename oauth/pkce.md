@@ -1,42 +1,70 @@
 # PKCE (Proof Key for Code Exchange)
 
-PKCE (Proof Key for Code Exchange) is an extension to the OAuth 2.0 Authorization Code Flow that enhances security, particularly for public clients like mobile and single-page applications. PKCE helps prevent authorization code interception attacks by adding an additional layer of security.
+PKCE (pronounced "pixy") prevents authorization codes from being stolen and used by attackers.
 
-## How PKCE Works
+---
 
-1. **Client Generates Code Verifier and Code Challenge**
+## Why PKCE?
 
-   - The client generates a random string called the "code verifier."
-   - The client creates a "code challenge" by hashing the code verifier with SHA-256 and encoding it using Base64 URL encoding.
+When you use the Authorization Code Flow, the authorization code gets sent back to your app via a redirect URL. The problem: that code can be intercepted.
 
-2. **Authorization Request**
+- On mobile, malicious apps can register the same URL scheme and grab the code
+- In browsers, the code ends up in history, logs, or could be captured by browser extensions
+- Network proxies or middleware might see the redirect URL
 
-   - The client initiates the authorization request to the authorization server, including the code challenge and the method used to generate it (usually `S256` for SHA-256) see [authorization code flow](authorization-code-flow.md).
+PKCE fixes this by adding a secret that only your app knows. You create a random value (`code_verifier`), hash it (`code_challenge`), and send the hash with your authorization request. When you exchange the code for tokens, you send the original value. The server checks that they match - if someone stole your code, they won't have the verifier.
 
-3. **Token Request with Code Verifier**
+It's like a coat check: you get a ticket stub, they keep one. To get your coat, both parts need to match.
 
-   - The client exchanges the authorization code for an access token by including the original code verifier in the request.
+---
 
-4. **Authorization Server Validates Code Verifier**
-   - The authorization server verifies that the code verifier matches the code challenge provided during the authorization request. If they match, the server issues an access token.
+## How It Works
 
-## PKCE Example Using `bash`
+1. Generate a random `code_verifier` (43-128 characters)
+2. Hash it with SHA-256 and base64url encode it - that's your `code_challenge`
+3. Send `code_challenge` and `code_challenge_method=S256` with your authorization request
+4. When exchanging the code, include the original `code_verifier`
+5. Server hashes the verifier and checks it matches the challenge
 
-### 1. Generate Code Verifier and Code Challenge
+---
 
-Generate a code verifier and code challenge. Here’s an example using `openssl` and `bash`:
+## Generating PKCE Values
+
+### bash
 
 ```bash
-# Generate a code verifier (random string)
-CODE_VERIFIER=$(openssl rand -base64 32 | tr -d '=+/')
+# Generate code verifier
+CODE_VERIFIER=$(openssl rand -base64 32 | tr -d '=+/' | cut -c1-43)
 
-# Generate a code challenge (SHA-256 hash of the code verifier)
-CODE_CHALLENGE=$(echo -n "$code_verifier" | openssl dgst -binary -sha256 | base64 | tr -d '=+/')
+# Generate code challenge
+CODE_CHALLENGE=$(echo -n "$CODE_VERIFIER" | openssl dgst -binary -sha256 | base64 | tr '+/' '-_' | tr -d '=')
 
-# URL encode the code challenge
-CODE_CHALLENGE=$(echo -n "$code_challenge" | sed 's/+/%2B/g; s/\//%2F/g; s/=/%3D/g')
-
-echo $CODE_CHALLENGE
+echo "Code Verifier: $CODE_VERIFIER"
+echo "Code Challenge: $CODE_CHALLENGE"
 ```
 
-Next: [DPoP](dpop.md)
+### Python
+
+```python
+import secrets
+import hashlib
+import base64
+
+code_verifier = secrets.token_urlsafe(32)
+code_challenge = base64.urlsafe_b64encode(
+    hashlib.sha256(code_verifier.encode()).digest()
+).decode().rstrip("=")
+```
+
+---
+
+## Requirements
+
+PKCE is **required** for all Authorization Code Flow requests. Only `S256` is supported.
+
+---
+
+## References
+
+- [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) - PKCE specification
+- [OAuth 2.0 Security BCP](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics) - recommends PKCE for all clients

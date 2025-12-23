@@ -1,76 +1,125 @@
 # Authorization Code Flow
 
-The Authorization Code Flow is a common method used to securely obtain an access token from an authorization server. It is typically used in web applications where you need to access resources on behalf of a user.
+## Overview
 
-## Steps:
+The **Authorization Code Flow** is used to securely obtain an access token from an authorization server on behalf of a user. This flow is typically used in web applications where user authentication and consent are required.
 
-1. **User Requests Authorization**
+---
 
-   - The user initiates the process by attempting to log in or authorize an application to access their resources. This usually involves clicking a "Login with" or "Authorize" button in the application.
+## When to Use
 
-2. **Redirect to Authorization Server**
+- Web applications with server-side backends
+- Applications that need to access user data
+- Scenarios requiring user authentication and consent
 
-   - The application redirects the user to an authorization server. This redirect includes:
+---
 
-     - client_id
-     - Requested scopes (what access the application needs)
-     - redirect_uri (where the authorization server should send the user after authorization)
-     - state
-     - code_challenge (see [PKCE](./pkce.md))
+## Getting a Client
+
+You can create OAuth clients for the Authorization Code Flow in the Settings page of the Jiko authentication portal.
+
+---
+
+## How It Works
+
+1. The user initiates login by clicking a "Login" or "Authorize" button.
+2. The application redirects the user to the authorization server.
+3. The user authenticates and grants permission.
+4. The authorization server redirects back with an authorization code.
+5. The application exchanges the code for an access token.
+6. The application uses the access token to access protected resources.
+
+---
+
+## Authorization Request
+
+The application redirects the user to the authorization endpoint with:
+
+- `response_type`: Must be `code`
+- `client_id`: The client identifier
+- `redirect_uri`: Where to redirect after authorization
+- `scope`: The requested scopes
+- `state`: A random string to prevent CSRF attacks
+- `code_challenge`: PKCE challenge (see [PKCE](./pkce.md))
+- `code_challenge_method`: Must be `S256`
+
+### Request Example
 
 ```http
-POST /api/oauth2/authorize
-Content-Type: application/x-www-form-urlencoded
-
-response_type=code&
-client_id=your-client-id&
-redirect_uri=https://your-app.com/callback&
-scope=pockets.read&
-state=some-random-state
+GET /api/oauth2/authorize?response_type=code&client_id=your-client-id&redirect_uri=https://your-app.com/callback&scope=pockets.read&state=some-random-state&code_challenge=CODE_CHALLENGE&code_challenge_method=S256
 ```
 
-3. **User Authenticates and Authorizes**
+### Response Example
 
-   - The user logs in to the authorization server and grants or denies permission for the application to access their data.
-
-4. **Authorization Code Issued**
-
-   - If the user approves, the authorization server redirects the user back to the application’s redirect URI with an authorization code.
+After the user authenticates and approves, the authorization server redirects back:
 
 ```http
-HTTP/1.1 303 Other
+HTTP/1.1 303 See Other
 Location: https://your-app.com/callback?code=authorization-code&state=some-random-state
 ```
 
-5. **Application Requests Token**
+---
 
-   - The application extracts the authorization code from the URL and sends a request to the authorization server’s token endpoint. This request includes:
-     - authorization_code
-     - client_id
-     - client_secret (a secret key known only to the application and the authorization server) or using [private_key_jwt](./private-key-jwt.md)
-     - code_verifier (see [PKCE](./pkce.md))
+## Token Request
+
+The application exchanges the authorization code for tokens by sending a request to the token endpoint with:
+
+- `grant_type`: Must be `authorization_code`
+- `code`: The authorization code received
+- `client_id`: The client identifier
+- `client_assertion_type`: Specifies the JWT format
+- `client_assertion`: A signed JWT for client authentication (see [Private Key JWT](./private-key-jwt.md))
+- `code_verifier`: The PKCE code verifier (see [PKCE](./pkce.md))
+
+### Request Example
 
 ```http
-POST /api/oauth2/token
+POST /api/oauth2/token HTTP/1.1
+Host: auth.jiko.io
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=authorization_code&
 code=authorization-code&
 client_id=your-client-id&
-client_secret=your-client-secret
+client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&
+client_assertion=eyJhbGciOiJQUzI1NiIsInR5cCI6IkpXVCJ9...&
+code_verifier=CODE_VERIFIER
 ```
 
-6. **Token Issued**
+### Response Example
 
-   - The authorization server verifies the authorization code and other details. If everything checks out, it responds with an access token and a refresh token. The access token allows the application to make authorized API requests on behalf of the user.
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "dGhpcy1yZWZyZXNoLXRva2VuLi4u...",
+  "token_type": "Bearer",
+  "expires_in": 900
+}
+```
 
-7. **Access Resources**
+---
 
-   - The application uses the access token to request resources from an API or resource server.
+## Access Token Lifetime
 
-8. **Token Refresh**
-   - If a refresh token was provided, it can be used to obtain a new access token when the current one expires, without needing the user to reauthorize.
+- Access tokens have a lifespan of `15 minutes`.
+- Refresh tokens have a lifespan of `90 days`.
+- Use the refresh token to obtain new access tokens without user re-authentication (see [Refresh Tokens](./refresh-tokens.md)).
 
-For detailed information and technical breakdowns of these topics see [oauth.com](https://www.oauth.com/oauth2-servers/access-tokens/authorization-code-request/)
+---
 
-Next: [private_key_jwt](./private-key-jwt.md)
+## Security Considerations
+
+- Always use PKCE to prevent authorization code interception attacks.
+- Validate the `state` parameter to prevent CSRF attacks.
+- Store tokens securely on the server side.
+- Use short-lived JWTs for the `client_assertion` (recommended max 5 minutes).
+
+---
+
+### 📚 References
+
+[RFC 6749 - Authorization Code Grant](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1) - OAuth 2.0 Authorization Code Grant specification.
+
+[oauth.com](https://www.oauth.com/oauth2-servers/access-tokens/authorization-code-request/) - Detailed information and technical breakdowns.
+
+Next: [Client Credentials Flow](./client-credentials.md) | [Private Key JWT](./private-key-jwt.md)

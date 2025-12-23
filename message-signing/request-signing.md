@@ -17,7 +17,7 @@ Jiko APIs aim to implement [RFC 9421](https://datatracker.ietf.org/doc/html/rfc9
 Describes **what was signed** and how.
 
 ```http
-Signature-Input: sig1=("@method" "host" "date"); keyid="my-key"; alg="rsa-pss-sha512"; created=1680000000
+Signature-Input: sig1=("@method" "host" "date"); keyid="my-key"; alg="ecdsa-p256-sha256"; created=1680000000
 ```
 
 ### **Signature**
@@ -34,7 +34,7 @@ Signature: sig1=:Base64(signature bytes):
 GET /api/v2/pockets/ HTTP/1.1
 Host: api.business.jiko.io
 Date: Tue, 16 May 2023 14:00:00 GMT
-Signature-Input: sig1=("@method" "host" "date"); keyid="key-rsa-1"; alg="rsa-v1_5-sha256"
+Signature-Input: sig1=("@method" "host" "date"); keyid="key-ecdsa-1"; alg="ecdsa-p256-sha256"
 Signature: sig1=:MEUCIQD...fakebase64...qGZQ==:
 ```
 
@@ -58,7 +58,13 @@ RFC 9421 supports a range of algorithms, currently Jiko supports:
 | Request Target | `@path`, `@query`, `@target-uri` |
 | Headers        | `host`, `date`, `authorization`  |
 
-Jiko requires signers to sign the following information `@method` `@authority`, `@target-uri` and the `authorization` header, the `content-digest` header is also required when a request includes a body
+Jiko requires the following fields to be signed:
+
+- `@method`
+- `@authority`
+- `@target-uri`
+- `authorization`
+- `content-digest` (when request has a body)
 
 ### Content-Digest
 
@@ -78,6 +84,6 @@ Authorization: ey...faketoken...sJFjajdmJJS3=
 { "pocket_name": "Test pocket" }
 ```
 
-## Key management
+## Key Management
 
-The protocol requires key identifiers (keyid) to match public keys. Key distribution is currently a manual process, with self-serve options coming soon.
+The protocol requires key identifiers (keyid) to match public keys. You can add your public key in the Settings page of the Jiko authentication portal.
