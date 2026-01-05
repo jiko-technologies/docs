@@ -90,6 +90,7 @@ scope=pockets.read transfers.read
 ```python
 import os
 import time
+
 import jwt
 import requests
 
@@ -99,22 +100,28 @@ private_key = open("private_key.pem", "rb").read()
 # Create the client assertion JWT
 now = int(time.time())
 claims = {
-    "iss": os.getenv("JIKO_CLIENT_ID"),
-    "sub": os.getenv("JIKO_CLIENT_ID"),
+    "iss": os.getenv("OAUTH_CLIENT_ID"),
+    "sub": os.getenv("OAUTH_CLIENT_ID"),
     "aud": "https://auth.jiko.io/api/oauth2/token",
+    # For sandbox "aud": "https://authentication-portal.sandbox-api.jikoservices.com/api/oauth2/token",
     "iat": now,
     "exp": now + 300,  # 5 minutes
     "jti": os.urandom(16).hex(),
 }
 
-client_assertion = jwt.encode(claims, private_key, algorithm="PS256")
+client_assertion = jwt.encode(
+    claims,
+    private_key,
+    algorithm="EdDSA",  # set algorithm to match your key
+)
 
 # Request the access token
 response = requests.post(
     "https://auth.jiko.io/api/oauth2/token",
+    # For sandbox https://authentication-portal.sandbox-api.jikoservices.com/api/oauth2/token
     data={
         "grant_type": "client_credentials",
-        "client_id": os.getenv("JIKO_CLIENT_ID"),
+        "client_id": os.getenv("OAUTH_CLIENT_ID"),
         "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
         "client_assertion": client_assertion,
         "scope": "pockets.read",
@@ -122,13 +129,17 @@ response = requests.post(
 )
 
 token_data = response.json()
+print(token_data)
 access_token = token_data["access_token"]
 
 # Use the access token to call an API
 api_response = requests.get(
     "https://api.business.jiko.io/api/v2/pockets/",
+    # For sandbox https://customer-api.sandbox-api.jikoservices.com/api/v2/pockets/
     headers={"Authorization": f"Bearer {access_token}"},
 )
+print(api_response.json())
+
 ```
 
 ---
